@@ -37,8 +37,12 @@ let gravity = 0.4;
 let gameOver = false;
 let score = 0;
 let started = false;
+let scores = JSON.parse(localStorage.getItem("scores")) || [];
+let saved = false;
+let reloaded = false;
 
 window.onload = function () {
+    createScoreBoard();
     board = document.getElementById("board");
     board.height = boardHeight;
     board.width = boardWidth;
@@ -61,7 +65,7 @@ window.onload = function () {
             birdHeight,
             birdWidth,
             birdHeight,
-            birdWidth,
+            birdWidth
         );
     };
 
@@ -73,26 +77,27 @@ window.onload = function () {
     bottomPipeImg.src = "./bottompipe.png";
 
     document.addEventListener("keydown", () => {
-        if(!started) {
+        if (!started) {
             started = true;
-            setInterval(createPipe, 750);
             requestAnimationFrame(update);
+            setInterval(createPipe, 750);
         }
     });
-    if(!started) {
-        requestAnimationFrame(updateBeforeStart)
+    if (!started) {
+        requestAnimationFrame(updateBeforeStart);
     }
     document.addEventListener("keydown", moveBird);
+    document.addEventListener("click", moveBird);
 };
 
 function update() {
     // check for game Over
-    if(gameOver) {
+    if (gameOver) {
         requestAnimationFrame(gameOverUpdate);
         return;
     }
 
-    if(!started) {
+    if (!started) {
         requestAnimationFrame(updateBeforeStart);
         return;
     }
@@ -109,15 +114,15 @@ function update() {
         context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
         pipe.x += velocityX;
 
-        if(!pipe.passed && bird.x > pipe.x + pipe.width) {
+        if (!pipe.passed && bird.x > pipe.x + pipe.width) {
             pipe.passed = true;
             score += 0.5;
         }
-        if(detectCollision(pipe, bird)) {
+        if (detectCollision(pipe, bird)) {
             gameOver = true;
         }
 
-        if(bird.y > boardHeight){
+        if (bird.y > boardHeight) {
             gameOver = true;
         }
     }
@@ -135,7 +140,8 @@ function update() {
 }
 
 function createPipe() {
-    let randomPositionY = pipeY - pipeHeight/4 - Math.random()*(pipeHeight/2);
+    let randomPositionY =
+        pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
     let minimumGap = boardHeight / 3;
     let topPipe = {
         img: topPipeImg,
@@ -148,7 +154,7 @@ function createPipe() {
     let bottomPipe = {
         img: bottomPipeImg,
         x: pipeX,
-        y: randomPositionY + pipeHeight +  minimumGap,
+        y: randomPositionY + pipeHeight + minimumGap,
         width: pipeWidth,
         height: pipeHeight,
         passed: false,
@@ -156,35 +162,40 @@ function createPipe() {
     pipeArray.push(topPipe, bottomPipe);
 }
 
-
 function detectCollision(a, b) {
-    return a.x < b.x + b.width &&   //a's top left corner doesn't reach b's top right corner
-           a.x + a.width > b.x &&   //a's top right corner passes b's top left corner
-           a.y < b.y + b.height &&  //a's top left corner doesn't reach b's bottom left corner
-           a.y + a.height > b.y;    //a's bottom left corner passes b's top left corner
+    return (
+        a.x < b.x + b.width && //a's top left corner doesn't reach b's top right corner
+        a.x + a.width > b.x && //a's top right corner passes b's top left corner
+        a.y < b.y + b.height && //a's top left corner doesn't reach b's bottom left corner
+        a.y + a.height > b.y
+    ); //a's bottom left corner passes b's top left corner
 }
 
-function moveBird(e){
-    console.log(e)
-    if(e.code == "Space"){
+function moveBird(e) {
+    if (e.code == "Space" || e.code == "Click!") {
         velocityY = -6; //bird jumping speed
     }
 }
 
 function updateBeforeStart() {
-
-    if(started) {
+    if (started) {
         return;
     }
 
     context.clearRect(0, 0, boardWidth, boardHeight);
     context.fillStyle = "white";
     context.font = "30px Arial";
-    context.fillText(`Click Any Key to start`, boardWidth/8, boardHeight/6);
+    context.fillText(`Click Any Key to start`, boardWidth / 8, boardHeight / 6);
 
-    context.drawImage(birdImg, boardWidth/8, boardHeight/2, birdWidth, birdHeight)
+    context.drawImage(
+        birdImg,
+        boardWidth / 8,
+        boardHeight / 2,
+        birdWidth,
+        birdHeight
+    );
 
-    requestAnimationFrame(updateBeforeStart)
+    requestAnimationFrame(updateBeforeStart);
 }
 
 function gameOverUpdate() {
@@ -192,14 +203,66 @@ function gameOverUpdate() {
     context.clearRect(0, 0, boardWidth, boardHeight);
     context.fillStyle = "white";
     context.font = "30px Arial";
-    context.fillText(`Game Over!`, boardWidth/8, boardHeight/2);
-    context.fillText(`Score: ${score}`, boardWidth/8, boardHeight/2 + 50);
+    context.fillText(`Game Over!`, boardWidth / 8, boardHeight / 2);
+    context.fillText(`Score: ${score}`, boardWidth / 8, boardHeight / 2 + 50);
     context.font = "18px Arial";
-    context.fillText(`Press any key to play again`, boardWidth/8, boardHeight/2 + 100);
+    context.fillText(
+        `Press any key to play again`,
+        boardWidth / 8,
+        boardHeight / 2 + 100
+    );
+
+    if (!saved && score != 0) {
+        const name = prompt("By Which Name We Should Save Your Score?").trim();
+        let found = false;
+        for (let i = 0; i < scores.length; i++) {
+            let [storedName, storedScore] = Object.entries(scores[i])[0];
+            console.log(scores[i]);
+            if (storedName == name) {
+                found = true;
+                if (storedScore < score) {
+                    scores[i][storedName] = score;
+                }
+            }
+        }
+        if (!found) {
+            scores.push({ [name]: score });
+        }
+        localStorage.setItem("scores", JSON.stringify(scores));
+        saved = true;
+        if(!found) {
+            addToScoreBoard(name, score)
+        }
+    }
 
     document.addEventListener("keydown", () => {
+        if(!reloaded){
+            reloaded = true;
+    
         location.reload();
+        }
+        return;
     });
 
     requestAnimationFrame(gameOverUpdate);
+}
+
+function createScoreBoard() {
+    scores.forEach((score) => {
+        Object.entries(score).forEach(([name, score]) => {
+            addToScoreBoard(name, score)
+        });
+    });
+}
+
+function addToScoreBoard(name, score){
+    const tableRow = document.createElement("tr");
+    const tableDataName = document.createElement("td");
+    const tableDataScore = document.createElement("td");
+
+    tableRow.append(tableDataName, tableDataScore);
+    tableDataName.innerText = name;
+    tableDataScore.innerText = score;
+
+    document.getElementById("score-board").appendChild(tableRow);
 }

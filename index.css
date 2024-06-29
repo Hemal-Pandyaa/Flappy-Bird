@@ -14,3 +14,20 @@
     height: 100%;
     box-sizing: border-box;
 }
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+    padding: 15px;
+    text-align: center;
+}
+
+table {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 100px;
+    margin: 100px;
+}
