@@ -67,10 +67,10 @@ window.onload = function () {
 
     // pipes
     topPipeImg = new Image();
-    topPipeImg.src = "./topPipe.png";
+    topPipeImg.src = "./toppipe.png";
 
     bottomPipeImg = new Image();
-    bottomPipeImg.src = "./bottomPipe.png";
+    bottomPipeImg.src = "./bottompipe.png";
 
     document.addEventListener("keydown", () => {
         if(!started) {
