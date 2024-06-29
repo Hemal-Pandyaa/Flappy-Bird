@@ -76,16 +76,20 @@ window.onload = function () {
     bottomPipeImg = new Image();
     bottomPipeImg.src = "./bottompipe.png";
 
-    document.addEventListener("keydown", () => {
+    const start = function () {
         if (!started) {
             started = true;
             requestAnimationFrame(update);
             setInterval(createPipe, 750);
         }
-    });
-    if (!started) {
+    }
+
+    document.addEventListener("keydown", start);
+    document.addEventListener("click", start);
+    if(!started){
         requestAnimationFrame(updateBeforeStart);
     }
+    // move bird
     document.addEventListener("keydown", moveBird);
     document.addEventListener("click", moveBird);
 };
@@ -172,8 +176,10 @@ function detectCollision(a, b) {
 }
 
 function moveBird(e) {
-    if (e.code == "Space" || e.code == "Click!") {
-        velocityY = -6; //bird jumping speed
+    if (e.type === "keydown" && (e.code === "Space")) {
+        velocityY = -6;
+    } else if (e.type === "click") {
+        velocityY = -6;
     }
 }
 
@@ -213,6 +219,7 @@ function gameOverUpdate() {
     );
 
     if (!saved && score != 0) {
+        saved = true;
         const name = prompt("By Which Name We Should Save Your Score?").trim();
         let found = false;
         for (let i = 0; i < scores.length; i++) {
@@ -229,20 +236,22 @@ function gameOverUpdate() {
             scores.push({ [name]: score });
         }
         localStorage.setItem("scores", JSON.stringify(scores));
-        saved = true;
         if(!found) {
             addToScoreBoard(name, score)
         }
     }
 
-    document.addEventListener("keydown", () => {
+    const restart = () => {
         if(!reloaded){
             reloaded = true;
     
         location.reload();
         }
         return;
-    });
+    }
+
+    document.addEventListener("keydown", restart);
+    document.addEventListener("click", restart);
 
     requestAnimationFrame(gameOverUpdate);
 }

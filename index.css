@@ -1,6 +1,6 @@
 #board {
     background: url("./flappybirdbg.png");
-    margin: 0;
+    margin: 20px auto;
     padding: 0;
     box-sizing: border-box;
 }
@@ -26,8 +26,14 @@ th, td {
 
 table {
     position: absolute;
-    right: 0;
     top: 0;
+    right: 0;
     margin: 100px;
-    margin: 100px;
+}
+
+@media (max-width: 900px) {
+    table {
+        position: initial;
+        margin:  20px auto; 
+    }
 }
