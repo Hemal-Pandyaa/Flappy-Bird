@@ -1,277 +1,264 @@
-//board
 let board;
-let boardWidth = 360;
-let boardHeight = 640;
+const boardWidth = 360;
+const boardHeight = 640;
 let context;
 
-//bird
-let birdWidth = 34; //width/height ratio = 408/228 = 17/12
-let birdHeight = 24;
-let birdX = boardWidth / 8;
-let birdY = boardHeight / 2;
-let birdImg;
-
-let bird = {
-    x: birdX,
-    y: birdY,
-    width: birdWidth,
-    height: birdHeight,
+// Bird properties
+const bird = {
+  width: 34,
+  height: 24,
+  x: boardWidth / 8,
+  y: boardHeight / 2,
+  velocityY: 0,
+  img: new Image(),
 };
+bird.img.src = "./flappybird.png";
 
-//pipes
-let pipeArray = [];
-let pipeWidth = 64; //width/height ratio = 384/3072 = 1/8
-let pipeHeight = 512;
-let pipeX = boardWidth;
-let pipeY = 0;
+// Pipes properties
+const pipes = [];
+const pipeWidth = 64;
+const pipeHeight = 512;
+const pipeGap = boardHeight / 3;
 
-let topPipeImg;
-let bottomPipeImg;
+const topPipeImg = new Image();
+topPipeImg.src = "./toppipe.png";
+const bottomPipeImg = new Image();
+bottomPipeImg.src = "./bottompipe.png";
 
-//physics
-let velocityX = -4; //pipes moving left speed
-let velocityY = 0; //bird jump speed
-let gravity = 0.4;
+// Game physics
+const gravity = 0.4;
+const velocityX = -4;
 
-// game loop
+// Game state
 let gameOver = false;
 let score = 0;
 let started = false;
-let scores = JSON.parse(localStorage.getItem("scores")) || [];
 let saved = false;
+
+const scores = JSON.parse(localStorage.getItem("scores")) || [];
 let reloaded = false;
 
-window.onload = function () {
-    createScoreBoard();
-    board = document.getElementById("board");
-    board.height = boardHeight;
-    board.width = boardWidth;
-    board.style.border = "1px solid black";
-    context = board.getContext("2d");
-
-    // drawing board background
-    const background = new Image();
-    background.src = "./flappybirdbg.png";
-    background.onload = function () {
-        context.drawImage(background, 0, 0, boardWidth, boardHeight);
-    };
-
-    // bird
-    birdImg = new Image();
-    birdImg.src = "./flappybird.png";
-    birdImg.onload = function () {
-        context.drawImage(
-            birdImg,
-            birdHeight,
-            birdWidth,
-            birdHeight,
-            birdWidth
-        );
-    };
-
-    // pipes
-    topPipeImg = new Image();
-    topPipeImg.src = "./toppipe.png";
-
-    bottomPipeImg = new Image();
-    bottomPipeImg.src = "./bottompipe.png";
-
-    const start = function () {
-        if (!started) {
-            started = true;
-            requestAnimationFrame(update);
-            setInterval(createPipe, 750);
-        }
-    }
-
-    document.addEventListener("keydown", start);
-    document.addEventListener("click", start);
-    if(!started){
-        requestAnimationFrame(updateBeforeStart);
-    }
-    // move bird
-    document.addEventListener("keydown", moveBird);
-    document.addEventListener("click", moveBird);
+window.onload = () => {
+  initializeGame();
 };
 
-function update() {
-    // check for game Over
-    if (gameOver) {
-        requestAnimationFrame(gameOverUpdate);
-        return;
-    }
+function initializeGame() {
+  createScoreBoard();
+  setupBoard();
+  setupBackground();
+  setupBird();
+  addEventListeners();
 
-    if (!started) {
-        requestAnimationFrame(updateBeforeStart);
-        return;
-    }
+  if (!started) {
+    requestAnimationFrame(updateBeforeStart);
+  }
+}
 
-    // clear board
-    context.clearRect(0, 0, boardWidth, boardHeight);
+function setupBoard() {
+  board = document.getElementById("board");
+  board.height = boardHeight;
+  board.width = boardWidth;
+  board.style.border = "1px solid black";
+  context = board.getContext("2d");
+}
 
-    // draw bird
-    context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+function setupBackground() {
+  const background = new Image();
+  background.src = "./flappybirdbg.png";
+  background.onload = () => context.drawImage(background, 0, 0, boardWidth, boardHeight);
+}
 
-    // draw pipe
-    for (let i = 0; i < pipeArray.length; i++) {
-        const pipe = pipeArray[i];
-        context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
-        pipe.x += velocityX;
+function setupBird() {
+  bird.img.onload = () => context.drawImage(bird.img, bird.x, bird.y, bird.width, bird.height);
+}
 
-        if (!pipe.passed && bird.x > pipe.x + pipe.width) {
-            pipe.passed = true;
-            score += 0.5;
-        }
-        if (detectCollision(pipe, bird)) {
-            gameOver = true;
-        }
+function addEventListeners() {
+  document.addEventListener("keydown", handleStart);
+  document.addEventListener("click", handleStart);
+}
 
-        if (bird.y > boardHeight) {
-            gameOver = true;
-        }
-    }
-
-    // move bird
-    bird.y = Math.max(bird.y + velocityY, 0);
-    velocityY += gravity;
-
-    context.fillStyle = "white";
-    context.font = "24px Arial";
-    context.fillText(`Score: ${score}`, 5, 30);
-
-    // animate every frame
+function handleStart() {
+  if (!started) {
+    started = true;
+    document.removeEventListener("keydown", handleStart);
+    document.removeEventListener("click", handleStart);
+    document.addEventListener("keydown", moveBird);
+    document.addEventListener("click", moveBird);
     requestAnimationFrame(update);
+    setInterval(createPipe, 750);
+  }
+}
+
+function update() {
+  if (gameOver) {
+    requestAnimationFrame(gameOverUpdate);
+    return;
+  }
+
+  clearBoard();
+  drawBackground();
+  drawBird();
+  updatePipes();
+  drawScore();
+
+  bird.velocityY += gravity;
+  bird.y = Math.max(bird.y + bird.velocityY, 0);
+
+  requestAnimationFrame(update);
+}
+
+function clearBoard() {
+  context.clearRect(0, 0, boardWidth, boardHeight);
+}
+
+function drawBackground() {
+  const background = new Image();
+  background.src = "./flappybirdbg.png";
+  context.drawImage(background, 0, 0, boardWidth, boardHeight);
+}
+
+function drawBird() {
+  context.drawImage(bird.img, bird.x, bird.y, bird.width, bird.height);
 }
 
 function createPipe() {
-    let randomPositionY =
-        pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
-    let minimumGap = boardHeight / 3;
-    let topPipe = {
-        img: topPipeImg,
-        x: pipeX,
-        y: randomPositionY,
-        width: pipeWidth,
-        height: pipeHeight,
-        passed: false,
-    };
-    let bottomPipe = {
-        img: bottomPipeImg,
-        x: pipeX,
-        y: randomPositionY + pipeHeight + minimumGap,
-        width: pipeWidth,
-        height: pipeHeight,
-        passed: false,
-    };
-    pipeArray.push(topPipe, bottomPipe);
+  const randomPositionY = -pipeHeight / 4 - Math.random() * (pipeHeight / 2);
+  pipes.push(createPipeObject(topPipeImg, randomPositionY));
+  pipes.push(createPipeObject(bottomPipeImg, randomPositionY + pipeHeight + pipeGap));
+}
+
+function createPipeObject(img, y) {
+  return { img, x: boardWidth, y, width: pipeWidth, height: pipeHeight, passed: false };
+}
+
+function updatePipes() {
+  pipes.forEach((pipe, index) => {
+    pipe.x += velocityX;
+
+    context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+
+    if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+      pipe.passed = true;
+      score += 0.5;
+    }
+
+    if (detectCollision(pipe, bird)) {
+      gameOver = true;
+    }
+
+    if (bird.y > boardHeight) {
+      gameOver = true;
+    }
+
+    while (pipes.length > 0 && pipes[0].x < -pipeWidth) {
+        pipes.shift(); //removes first element from the array
+    }
+  });
 }
 
 function detectCollision(a, b) {
-    return (
-        a.x < b.x + b.width && //a's top left corner doesn't reach b's top right corner
-        a.x + a.width > b.x && //a's top right corner passes b's top left corner
-        a.y < b.y + b.height && //a's top left corner doesn't reach b's bottom left corner
-        a.y + a.height > b.y
-    ); //a's bottom left corner passes b's top left corner
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 function moveBird(e) {
-    if (e.type === "keydown" && (e.code === "Space")) {
-        velocityY = -6;
-    } else if (e.type === "click") {
-        velocityY = -6;
-    }
+  if ((e.type === "keydown" && e.code === "Space") || e.type === "click") {
+    bird.velocityY = -6;
+  }
+}
+
+function drawScore() {
+  context.fillStyle = "white";
+  context.font = "24px Arial";
+  context.fillText(`Score: ${score}`, 5, 30);
 }
 
 function updateBeforeStart() {
-    if (started) {
-        return;
-    }
+  if (started) return;
 
-    context.clearRect(0, 0, boardWidth, boardHeight);
-    context.fillStyle = "white";
-    context.font = "30px Arial";
-    context.fillText(`Click Any Key to start`, boardWidth / 8, boardHeight / 6);
+  clearBoard();
+  context.fillStyle = "white";
+  context.font = "30px Arial";
+  context.fillText("Click Any Key to start", boardWidth / 8, boardHeight / 6);
+  context.drawImage(bird.img, bird.x, bird.y, bird.width, bird.height);
 
-    context.drawImage(
-        birdImg,
-        boardWidth / 8,
-        boardHeight / 2,
-        birdWidth,
-        birdHeight
-    );
-
-    requestAnimationFrame(updateBeforeStart);
+  requestAnimationFrame(updateBeforeStart);
 }
 
 function gameOverUpdate() {
-    started = false;
-    context.clearRect(0, 0, boardWidth, boardHeight);
-    context.fillStyle = "white";
-    context.font = "30px Arial";
-    context.fillText(`Game Over!`, boardWidth / 8, boardHeight / 2);
-    context.fillText(`Score: ${score}`, boardWidth / 8, boardHeight / 2 + 50);
-    context.font = "18px Arial";
-    context.fillText(
-        `Press any key to play again`,
-        boardWidth / 8,
-        boardHeight / 2 + 100
-    );
+  started = false;
+  clearBoard();
+  displayGameOverText();
 
-    if (!saved && score != 0) {
-        saved = true;
-        const name = prompt("By Which Name We Should Save Your Score?").trim();
-        let found = false;
-        for (let i = 0; i < scores.length; i++) {
-            let [storedName, storedScore] = Object.entries(scores[i])[0];
-            console.log(scores[i]);
-            if (storedName == name) {
-                found = true;
-                if (storedScore < score) {
-                    scores[i][storedName] = score;
-                }
-            }
-        }
-        if (!found) {
-            scores.push({ [name]: score });
-        }
-        localStorage.setItem("scores", JSON.stringify(scores));
-        if(!found) {
-            addToScoreBoard(name, score)
-        }
+  if (!saved && score !== 0) {
+    saveScore();
+  }
+
+  document.addEventListener("keydown", restartGame);
+  document.addEventListener("click", restartGame);
+
+  requestAnimationFrame(gameOverUpdate);
+}
+
+function displayGameOverText() {
+  context.fillStyle = "white";
+  context.font = "30px Arial";
+  context.fillText("Game Over!", boardWidth / 8, boardHeight / 2);
+  context.fillText(`Score: ${score}`, boardWidth / 8, boardHeight / 2 + 50);
+  context.font = "18px Arial";
+  context.fillText("Press any key to play again", boardWidth / 8, boardHeight / 2 + 100);
+}
+
+function saveScore() {
+  saved = true;
+  const name = prompt("By Which Name We Should Save Your Score?");
+  if (name === null) {
+    return; // Exit the function if the user cancels the prompt
+  }
+  const trimmedName = name.trim();
+  let found = false;
+
+  scores.forEach((scoreObj, i) => {
+    const [storedName, storedScore] = Object.entries(scoreObj)[0];
+    if (storedName === trimmedName) {
+      found = true;
+      if (storedScore < score) {
+        scores[i][storedName] = score;
+      }
     }
+  });
 
-    const restart = () => {
-        if(!reloaded){
-            reloaded = true;
-    
-        location.reload();
-        }
-        return;
-    }
+  if (!found) {
+    scores.push({ [trimmedName]: score });
+  }
 
-    document.addEventListener("keydown", restart);
-    document.addEventListener("click", restart);
+  localStorage.setItem("scores", JSON.stringify(scores));
+  if (!found) {
+    addToScoreBoard(trimmedName, score);
+  }
+}
 
-    requestAnimationFrame(gameOverUpdate);
+function restartGame() {
+  if (!reloaded) {
+    reloaded = true;
+    location.reload();
+  }
 }
 
 function createScoreBoard() {
-    scores.forEach((score) => {
-        Object.entries(score).forEach(([name, score]) => {
-            addToScoreBoard(name, score)
-        });
-    });
+  scores.forEach((scoreObj) => {
+    const [name, score] = Object.entries(scoreObj)[0];
+    addToScoreBoard(name, score);
+  });
 }
 
-function addToScoreBoard(name, score){
-    const tableRow = document.createElement("tr");
-    const tableDataName = document.createElement("td");
-    const tableDataScore = document.createElement("td");
+function addToScoreBoard(name, score) {
+  const tableRow = document.createElement("tr");
+  const tableDataName = document.createElement("td");
+  const tableDataScore = document.createElement("td");
 
-    tableRow.append(tableDataName, tableDataScore);
-    tableDataName.innerText = name;
-    tableDataScore.innerText = score;
+  tableRow.append(tableDataName, tableDataScore);
+  tableDataName.innerText = name;
+  tableDataScore.innerText = score;
 
-    document.getElementById("score-board").appendChild(tableRow);
+  document.getElementById("score-board").appendChild(tableRow);
 }
