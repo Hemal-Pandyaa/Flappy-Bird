@@ -25,6 +25,10 @@ topPipeImg.src = "./toppipe.png";
 const bottomPipeImg = new Image();
 bottomPipeImg.src = "./bottompipe.png";
 
+// Background image
+const background = new Image();
+background.src = "./flappybirdbg.png";
+
 // Game physics
 const gravity = 0.4;
 const velocityX = -4;
@@ -63,8 +67,6 @@ function setupBoard() {
 }
 
 function setupBackground() {
-  const background = new Image();
-  background.src = "./flappybirdbg.png";
   background.onload = () => context.drawImage(background, 0, 0, boardWidth, boardHeight);
 }
 
@@ -96,7 +98,7 @@ function update() {
   }
 
   clearBoard();
-  drawBackground();
+  context.drawImage(background, 0, 0, boardWidth, boardHeight);
   drawBird();
   updatePipes();
   drawScore();
@@ -109,12 +111,6 @@ function update() {
 
 function clearBoard() {
   context.clearRect(0, 0, boardWidth, boardHeight);
-}
-
-function drawBackground() {
-  const background = new Image();
-  background.src = "./flappybirdbg.png";
-  context.drawImage(background, 0, 0, boardWidth, boardHeight);
 }
 
 function drawBird() {
